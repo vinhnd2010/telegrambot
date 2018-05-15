@@ -1,8 +1,9 @@
-require 'telegram/bot'
-require 'daybreak'
-require 'pry'
-require 'dotenv/load'
-require 'date'
+require "telegram/bot"
+require "daybreak"
+require "pry"
+require "dotenv/load"
+require "date"
+require "sinatra"
 
 class Kyberbot
   def main
