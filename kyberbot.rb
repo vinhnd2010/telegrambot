@@ -121,4 +121,9 @@ class Kyberbot
   end
 end
 
+get '/' do
+  "Welcome to KyberNetwork!"
+end
+
+
 Kyberbot.new.main();
