@@ -9,10 +9,6 @@ require_relative "huobi_pro"
 class Assistant
   def main
     token = ENV["TELE_SECRET_TOKEN"]
-    hb_access_key = ENV["HB_ACCESS_KEY"]
-    hb_secret_key = ENV["HB_SECRET_KEY"]
-    hb_account_id = ENV["HB_ACCOUNT_ID"]
-    huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
 
     Telegram::Bot::Client.run(token) do |bot|
       bot.listen do |message|
@@ -21,26 +17,42 @@ class Assistant
         mess = message_text.split()
         first_name = message.chat.first_name
 
+        hb_access_key = ENV["HB_ACCESS_KEY_#{chat_id}"]
+        hb_secret_key = ENV["HB_SECRET_KEY_#{chat_id}"]
+        hb_account_id = ENV["HB_ACCOUNT_ID_#{chat_id}"]
+        if hb_access_key && hb_secret_key && hb_account_id
+          huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
+        end
+
         case mess[0]
         when "/start"
           hour = Time.now.hour
-          message = if hour < 12
+          res_message = if hour < 12
             "Good morning #{first_name}!"
           elsif 12 <= hour && hour <= 18
             "Good afternoon #{first_name}!"
           else
             "Hello #{first_name}!"
           end
-          bot.api.send_message(chat_id: chat_id, text: message)
+          bot.api.send_message(chat_id: chat_id, text: res_message)
         # /update issue_id, status_id
         when "/update"
           update_issue_status mess[1], mess[2]
           bot.api.send_message(chat_id: chat_id, text: "Already updated.")
         when "/hb_report"
-          total_usdt = huobi_pro.balance_in_usdt.round(0)
-          bot.api.send_message(chat_id: chat_id, text: "Your balances: #{total_usdt} USDT")
+          res_message = ""
+          if huobi_pro
+            top_tokens, total_usdt = huobi_pro.balance_in_usdt
+            top_tokens.each do |token|
+              res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
+            end
+            res_message += "\n====================\n Your balances: #{total_usdt.round 0} USDT"
+          else
+            res_message = "Need permission. Please contact administrator. Thank you!"
+          end
+          bot.api.send_message(chat_id: chat_id, text: res_message)
         when "/bnb_report"
-          
+          bot.api.send_message(chat_id: chat_id, text: "Developing ...")
         else
           bot.api.send_message(chat_id: chat_id, text: "Thanks!")
         end
