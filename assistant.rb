@@ -9,6 +9,8 @@ require_relative "huobi_pro"
 class Assistant
   def main
     token = ENV["TELE_SECRET_TOKEN"]
+    hb_report = "Huobi report"
+    bnb_report = "Binance report"
 
     Telegram::Bot::Client.run(token) do |bot|
       bot.listen do |message|
@@ -19,27 +21,22 @@ class Assistant
 
         hb_access_key = ENV["HB_ACCESS_KEY_#{chat_id}"]
         hb_secret_key = ENV["HB_SECRET_KEY_#{chat_id}"]
-        hb_account_id = ENV["HB_ACCOUNT_ID_#{chat_id}"]
-        if hb_access_key && hb_secret_key && hb_account_id
+        # hb_account_id = ENV["HB_ACCOUNT_ID_#{chat_id}"]
+        if hb_access_key && hb_secret_key
+          hb_account_id = HuobiPro.new(hb_access_key, hb_secret_key).accounts["data"][0]["id"]
           huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
         end
 
         case mess[0]
         when "/start"
-          hour = Time.now.hour
-          res_message = if hour < 12
-            "Good morning #{first_name}!"
-          elsif 12 <= hour && hour <= 18
-            "Good afternoon #{first_name}!"
-          else
-            "Hello #{first_name}!"
-          end
-          bot.api.send_message(chat_id: chat_id, text: res_message)
+          res_message = "Hello #{first_name}! \n Please choose the following actions:"
+          bot.api.send_message(chat_id: chat_id, text: res_message,
+            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: [[hb_report, bnb_report]], one_time_keyboard: true))
         # /update issue_id, status_id
         when "/update"
           update_issue_status mess[1], mess[2]
           bot.api.send_message(chat_id: chat_id, text: "Already updated.")
-        when "/hb_report"
+        when hb_report.split()[0]
           res_message = ""
           if huobi_pro
             top_tokens, total_usdt = huobi_pro.balance_in_usdt
@@ -51,10 +48,11 @@ class Assistant
             res_message = "Need permission. Please contact administrator. Thank you!"
           end
           bot.api.send_message(chat_id: chat_id, text: res_message)
-        when "/bnb_report"
+        when bnb_report.split()[0]
           bot.api.send_message(chat_id: chat_id, text: "Developing ...")
         else
-          bot.api.send_message(chat_id: chat_id, text: "Thanks!")
+          bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
+            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: [[hb_report, bnb_report]], one_time_keyboard: true))
         end
       end
     end

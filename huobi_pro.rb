@@ -8,7 +8,7 @@ require "dotenv/load"
 require "pry"
 
 class HuobiPro
-  def initialize(access_key,secret_key,account_id,signature_version="2")
+  def initialize(access_key, secret_key, account_id="", signature_version="2")
       @access_key = access_key
       @secret_key = secret_key
       @signature_version = signature_version
