@@ -6,6 +6,7 @@ require 'digest/md5'
 require 'base64'
 require "dotenv/load"
 require "pry"
+require "date"
 
 class HuobiPro
   def initialize(access_key, secret_key, account_id="", signature_version="2")
@@ -130,6 +131,19 @@ class HuobiPro
     request_method = "GET"
     params ={"order-id" => order_id}
     util(path,params,request_method)
+  end
+
+  def orders start_time=nil, end_time=nil
+    path = "/v1/order/orders"
+    request_method = "GET"
+    start_date = 
+    end_date = 
+    params = {
+      "states" => "filled",
+      "start-date" => (Date.today - 1).to_s,
+      "end-date" => Date.today.to_s
+    }
+    util(path, params, request_method)
   end
 
   def open_orders(symbol,side)

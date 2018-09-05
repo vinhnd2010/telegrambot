@@ -11,6 +11,9 @@ class Assistant
     token = ENV["TELE_SECRET_TOKEN"]
     hb_report = "Huobi report"
     bnb_report = "Binance report"
+    order_24h = "Huobi 24h Order"
+    date_time_format = "%Y-%m-%d %H:%M:%S"
+    keyboard_arr = [[hb_report, bnb_report], ["/hb_report", "/hb_24h_orders"]]
 
     Telegram::Bot::Client.run(token) do |bot|
       bot.listen do |message|
@@ -31,12 +34,12 @@ class Assistant
         when "/start"
           res_message = "Hello #{first_name}! \n Please choose the following actions:"
           bot.api.send_message(chat_id: chat_id, text: res_message,
-            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: [[hb_report, bnb_report]], one_time_keyboard: true))
+            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
         # /update issue_id, status_id
         when "/update"
           update_issue_status mess[1], mess[2]
           bot.api.send_message(chat_id: chat_id, text: "Already updated.")
-        when hb_report.split()[0]
+        when hb_report.split()[0], "/hb_report"
           res_message = ""
           if huobi_pro
             top_tokens, total_usdt = huobi_pro.balance_in_usdt
@@ -50,9 +53,19 @@ class Assistant
           bot.api.send_message(chat_id: chat_id, text: res_message)
         when bnb_report.split()[0]
           bot.api.send_message(chat_id: chat_id, text: "Developing ...")
+        when order_24h.split()[0], "/hb_24h_orders"
+          res_message = ""
+          orders_24h = huobi_pro.orders["data"]
+          orders_24h.each_with_index do |order, index|
+            res_message += "\n==================================" if index > 0
+            res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
+            res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
+            res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).strftime(date_time_format)}"
+          end
+          bot.api.send_message(chat_id: chat_id, text: res_message)
         else
           bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
-            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: [[hb_report, bnb_report]], one_time_keyboard: true))
+            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
         end
       end
     end
