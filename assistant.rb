@@ -60,7 +60,7 @@ class Assistant
             res_message += "\n==================================" if index > 0
             res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
             res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
-            res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).get_locale('+07:00').strftime(date_time_format)}"
+            res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
           end
           bot.api.send_message(chat_id: chat_id, text: res_message)
         else
