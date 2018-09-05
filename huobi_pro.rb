@@ -136,12 +136,11 @@ class HuobiPro
   def orders start_time=nil, end_time=nil
     path = "/v1/order/orders"
     request_method = "GET"
-    start_date = 
-    end_date = 
+    today = Time.now.getlocal("+07:00").to_date
     params = {
       "states" => "filled",
-      "start-date" => (Date.today - 1).to_s,
-      "end-date" => Date.today.to_s
+      "start-date" => (today - 1).to_s,
+      "end-date" => today.to_s
     }
     util(path, params, request_method)
   end
