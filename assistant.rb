@@ -59,14 +59,14 @@ class Assistant
           one_month_orders = huobi_pro.orders["data"]
 
           orders_24h = one_month_orders.select do |order|
-            filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_s
+            filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_date.to_s
             filled_at >= (today - 1).to_s && filled_at <= today.to_s
           end
 
           orders_24h.each_with_index do |order, index|
             res_message += "\n==================================" if index > 0
             res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
-            res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
+            res_message += "\nAmount: #{order['amount'].to_f.round(9)} ---- Price:       #{order['price'].to_f.round(9)}"
             res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
           end
           bot.api.send_message(chat_id: chat_id, text: res_message)
