@@ -179,10 +179,10 @@ class HuobiPro
           usdt_amount += balance
         else
           if trade_detail("#{token_name}usdt")["status"] == "ok"
-            usdt_amount += balance * trade_detail("#{token_name}usdt")["tick"]["data"].first["price"]
+            usdt_amount += balance * trade_detail("#{token_name}usdt")["tick"]["data"].first["price"].to_f
           else
-            usdt_amount += balance * trade_detail("#{token_name}btc")["tick"]["data"].first["price"] *
-              trade_detail("btcusdt")["tick"]["data"].first["price"]
+            usdt_amount += balance * trade_detail("#{token_name}btc")["tick"]["data"].first["price"].to_f *
+              trade_detail("btcusdt")["tick"]["data"].first["price"].to_f
           end
         end
       end
