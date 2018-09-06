@@ -62,6 +62,7 @@ class Assistant
             filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_date.to_s
             filled_at >= (today - 1).to_s && filled_at <= today.to_s
           end
+          res_message += "Total: #{orders_24h.size}\n--------------------------------"
 
           orders_24h.each_with_index do |order, index|
             res_message += "\n==================================" if index > 0
