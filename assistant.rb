@@ -11,9 +11,7 @@ class Assistant
     token = ENV["TELE_SECRET_TOKEN"]
     hb_report = "Huobi report"
     bnb_report = "Binance report"
-    order_24h = "Huobi 24h Order"
-    date_time_format = "%Y-%m-%d %H:%M:%S"
-    keyboard_arr = [[hb_report, bnb_report], ["/hb_report", "/hb_24h_orders"]]
+    keyboard_arr = [[hb_report, bnb_report], ["/hb_report", "/24h_orders"], ["/today_orders"]]
 
     Telegram::Bot::Client.run(token) do |bot|
       bot.listen do |message|
@@ -53,23 +51,11 @@ class Assistant
           bot.api.send_message(chat_id: chat_id, text: res_message)
         when bnb_report.split()[0]
           bot.api.send_message(chat_id: chat_id, text: "Developing ...")
-        when order_24h.split()[0], "/hb_24h_orders"
-          res_message = ""
-          today = Time.now.getlocal("+07:00").to_date
-          one_month_orders = huobi_pro.orders["data"]
-
-          orders_24h = one_month_orders.select do |order|
-            filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_date.to_s
-            filled_at >= (today - 1).to_s && filled_at <= today.to_s
-          end
-          res_message += "Total: #{orders_24h.size}\n--------------------------------"
-
-          orders_24h.each_with_index do |order, index|
-            res_message += "\n===========================" if index > 0
-            res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
-            res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
-            res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
-          end
+        when "/24h_orders"
+          res_message = fetch_orders(huobi_pro, 1)
+          bot.api.send_message(chat_id: chat_id, text: res_message)
+        when "/today_orders"
+          res_message = fetch_orders(huobi_pro, 0)
           bot.api.send_message(chat_id: chat_id, text: res_message)
         else
           bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
@@ -80,6 +66,27 @@ class Assistant
   end
 
   private
+  def fetch_orders huobi_pro, dates=nil
+    res_message = ""
+    date_time_format = "%Y-%m-%d %H:%M:%S"
+    today = Time.now.getlocal("+07:00").to_date
+    six_months_orders = huobi_pro.orders["data"]
+
+    orders_in_dates = six_months_orders.select do |order|
+      filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_date.to_s
+      filled_at >= (today - dates.to_i).to_s && filled_at <= today.to_s
+    end
+    res_message += "Total: #{orders_in_dates.size}\n--------------------------------"
+
+    orders_in_dates.each_with_index do |order, index|
+      res_message += "\n===========================" if index > 0
+      res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
+      res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
+      res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
+    end
+    res_message
+  end
+
   def update_issue_status issue_id, new_status_id, change_note=""
     base_url = "https://redmine.knstats.com/" 
     api_token = ENV["REDMINE_API_TOKEN"]
