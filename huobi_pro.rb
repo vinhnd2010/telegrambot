@@ -173,19 +173,21 @@ class HuobiPro
         top_tokens[token['currency']] = top_tokens[token['currency']].to_f + token['balance'].to_f
       end
     end
-      top_tokens.keys.each do |token_name|
-        balance = top_tokens[token_name]
-        if token_name == "usdt"
-          usdt_amount += balance
+    top_tokens.keys.each do |token_name|
+      balance = top_tokens[token_name]
+      if token_name == "usdt"
+        usdt_amount += balance
+      else
+        if trade_detail("#{token_name}usdt")["status"] == "ok"
+          usdt_amount += balance * trade_detail("#{token_name}usdt")["tick"]["data"].first["price"].to_f
         else
-          if trade_detail("#{token_name}usdt")["status"] == "ok"
-            usdt_amount += balance * trade_detail("#{token_name}usdt")["tick"]["data"].first["price"].to_f
-          else
+          if trade_detail("#{token_name}btc")["tick"]
             usdt_amount += balance * trade_detail("#{token_name}btc")["tick"]["data"].first["price"].to_f *
               trade_detail("btcusdt")["tick"]["data"].first["price"].to_f
           end
         end
       end
+    end
     [top_tokens, usdt_amount]
   end
   
