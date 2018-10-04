@@ -168,7 +168,7 @@ class HuobiPro
     top_tokens = {}
     balances = self.balances
     tokens = balances["data"]["list"]
-    large_tokens = tokens.each do |token| 
+    tokens.each do |token| 
       if (balance = token['balance'].to_f) > 0
         top_tokens[token['currency']] = top_tokens[token['currency']].to_f + token['balance'].to_f
       end

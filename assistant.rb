@@ -4,16 +4,23 @@ require 'uri'
 require 'json'
 require "telegram/bot"
 require "dotenv/load"
+require 'active_support'
+require 'active_support/core_ext'
 require_relative "huobi_pro"
+require_relative "binance_api"
 
 class Assistant
   def main
-    token = ENV["TELE_SECRET_TOKEN"]
-    hb_report = "Huobi report"
-    bnb_report = "Binance report"
-    keyboard_arr = [[hb_report, bnb_report], ["/hb_report", "/24h_orders"], ["/today_orders"]]
+    tele_secret_token = ENV["TELE_SECRET_TOKEN"]
+    hb_balances = "/hb_balances"
+    bnb_balances = "/bnb_balances"
+    keyboard_arr = [
+      [hb_balances, bnb_balances],
+      ["/hb_24h_orders", "/bnb_24h_orders"],
+      ["/hb_today_orders", "/bnb_today_orders"]
+    ]
 
-    Telegram::Bot::Client.run(token) do |bot|
+    Telegram::Bot::Client.run(tele_secret_token) do |bot|
       bot.listen do |message|
         chat_id = message.chat.id
         message_text = message.text
@@ -28,6 +35,10 @@ class Assistant
           huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
         end
 
+        if ENV["BNB_API_KEY"] && ENV["BNB_SECRET_KEY"]
+          binance_api = BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"])
+        end
+
         case mess[0]
         when "/start"
           res_message = "Hello #{first_name}! \n Please choose the following actions:"
@@ -37,24 +48,34 @@ class Assistant
         when "/update"
           update_issue_status mess[1], mess[2]
           bot.api.send_message(chat_id: chat_id, text: "Already updated.")
-        when hb_report.split()[0], "/hb_report"
+        when hb_balances
           res_message = ""
           if huobi_pro
             top_tokens, total_usdt = huobi_pro.balance_in_usdt
             top_tokens.each do |token|
               res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
             end
-            res_message += "\n====================\n Your balances: #{total_usdt.round 0} USDT"
+            res_message += "\n==========================\n Your HB balances: #{total_usdt.round 0} USDT"
           else
             res_message = "Need permission. Please contact administrator. Thank you!"
           end
           bot.api.send_message(chat_id: chat_id, text: res_message)
-        when bnb_report.split()[0]
-          bot.api.send_message(chat_id: chat_id, text: "Developing ...")
-        when "/24h_orders"
+        when bnb_balances
+           res_message = ""
+          if binance_api
+            top_tokens, total_usdt = binance_api.balance_in_usdt
+            top_tokens.each do |token|
+              res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
+            end
+            res_message += "\n==============================\n Your Binance balances: #{total_usdt.round 0} USDT"
+          else
+            res_message = "Need permission. Please contact administrator. Thank you!"
+          end
+          bot.api.send_message(chat_id: chat_id, text: res_message)
+        when "/hb_24h_orders"
           res_message = fetch_orders(huobi_pro, 1)
           bot.api.send_message(chat_id: chat_id, text: res_message)
-        when "/today_orders"
+        when "/hb_today_orders"
           res_message = fetch_orders(huobi_pro, 0)
           bot.api.send_message(chat_id: chat_id, text: res_message)
         else
