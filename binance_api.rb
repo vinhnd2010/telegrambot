@@ -7,10 +7,12 @@ require 'base64'
 require "dotenv/load"
 require "pry"
 require "date"
+require "csv"
 require "net/http"
 require "binance"
 
 class BinanceApi
+  FILLED_STT = ["FILLED", "PARTIALLY_FILLED"]
   def initialize access_key, secret_key
     @uri = URI.parse "https://api.binance.com"
     @header = {
@@ -39,15 +41,7 @@ class BinanceApi
 
   def balance_in_usdt
     usdt_amount = 0
-    top_assets = {}
-    assets = @client.account_info["balances"]
-    assets.each do |asset|
-      asset_name = asset["asset"]
-      asset_qty = asset["free"].to_f + asset["locked"].to_f
-      if asset_qty > 0
-        top_assets[asset_name] = asset_qty
-      end
-    end
+    top_assets = get_top_assets
 
     top_assets.each do |asset|
       balance = asset[1]
@@ -67,6 +61,27 @@ class BinanceApi
     [top_assets, usdt_amount]
   end
 
+  def all_orders
+    symbols = collect_symbol
+    today_orders = []
+    symbols.each do |symbol|
+      ["BTC", "ETH", "USDT"].each do |base|
+        orders = @client.all_orders(symbol: "#{symbol}#{base}",
+          startTime: (Time.now.getlocal("+07:00").to_date).to_time.to_i * 1000,
+          endTime: Time.now.getlocal("+07:00").to_i * 1000)
+        unless orders.empty?
+          if orders.is_a? Array
+            today_orders += orders.select do |order|
+              order["updateTime"].to_i >= Time.now.getlocal("+07:00").to_date.to_time.to_i &&
+              FILLED_STT.include?(order["status"])
+            end
+          end
+        end
+      end
+    end
+    today_orders
+  end
+
   private
   def util_get path, params
     url = "#{@uri}#{path}?#{Rack::Utils.build_query(params)}"
@@ -80,7 +95,39 @@ class BinanceApi
       {"message" => "error", "request_error" => e.message}
     end
   end
-end
 
-# Binance.new.day_changes("CMTBTC")
-# BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"]).balances
+  def collect_symbol
+    asset_symbols = get_top_assets.keys
+    symbols = asset_symbols
+
+    objects = CSV.read("db/assets.csv")
+    update_symbol_to_db asset_symbols
+
+    objects.each do |row|
+      symbols << row[0]
+    end
+
+    symbols.uniq
+  end
+
+  def update_symbol_to_db symbols
+    CSV.open("db/assets.csv", "wb") do |csv|
+      symbols.each do |symbol|
+        csv << [symbol]
+      end
+    end
+  end
+
+  def get_top_assets
+    top_assets = {}
+    assets = @client.account_info["balances"]
+    assets.each do |asset|
+      asset_name = asset["asset"].upcase
+      asset_qty = asset["free"].to_f + asset["locked"].to_f
+      if asset_qty > 0
+        top_assets[asset_name] = asset_qty
+      end
+    end
+    top_assets
+  end
+end

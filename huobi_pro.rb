@@ -141,7 +141,7 @@ class HuobiPro
     today = Time.now.getlocal("+07:00").to_date
     params = {
       "states" => "filled",
-      "start-date" => (today - 120).to_s,
+      "start-date" => (today - 240).to_s,
       "end-date" => today.to_s
     }
     util(path, params, request_method)
