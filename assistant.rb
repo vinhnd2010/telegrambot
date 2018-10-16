@@ -44,10 +44,6 @@ class Assistant
           res_message = "Hello #{first_name}! \n Please choose the following actions:"
           bot.api.send_message(chat_id: chat_id, text: res_message,
             reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
-        # /update issue_id, status_id
-        when "/update"
-          update_issue_status mess[1], mess[2]
-          bot.api.send_message(chat_id: chat_id, text: "Already updated.")
         when hb_balances
           res_message = ""
           if huobi_pro
@@ -106,31 +102,6 @@ class Assistant
       res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
     end
     res_message
-  end
-
-  def update_issue_status issue_id, new_status_id, change_note=""
-    base_url = "https://redmine.knstats.com/" 
-    api_token = ENV["REDMINE_API_TOKEN"]
-
-    payload = {
-      issue: {
-        notes: change_note,
-        status_id: new_status_id
-      }
-    }
-
-    url = "#{base_url}/issues/#{issue_id}.json" 
-    uri = URI.parse(url)
-    req = Net::HTTP::Put.new(uri.request_uri)
-
-    req["Content-Type"] = "application/json" 
-    req['X-Redmine-API-Key'] = api_token
-    req.body = payload.to_json
-
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    response = http.request(req)
-    return response
   end
 end
 
