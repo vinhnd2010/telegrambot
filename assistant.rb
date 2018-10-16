@@ -74,8 +74,8 @@ class Assistant
         when "/hb_today_orders"
           res_message = fetch_orders(huobi_pro, 0)
           bot.api.send_message(chat_id: chat_id, text: res_message)
-        when "/bnb_24h_orders"
-          res_message = fetch_orders(huobi_pro, 1)
+        when "/bnb_today_orders"
+          res_message = fetch_orders(binance_api, 1)
           bot.api.send_message(chat_id: chat_id, text: res_message)
         else
           bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
@@ -103,11 +103,21 @@ class Assistant
       orders_in_dates.each_with_index do |order, index|
         res_message += "\n===========================" if index > 0
         res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
-        res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
+        res_message += "\nAmount:    #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
         res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
       end
     elsif api_instance.class.to_s == "BinanceApi"
-      # orders = 
+      orders = api_instance.all_orders
+      res_message += "Total: #{orders.size}\n--------------------------------"
+
+      orders.each_with_index do |order, index|
+        res_message += "\n===========================" if index > 0
+        res_message += "\n#{order['symbol'].upcase} | #{order['side'].upcase}"
+        res_message += "\nAmount:    #{order['origQty'].to_f.round(9)} \nPrice:         #{order['price'].to_f.round(9)}"
+        res_message += "\nExecuted:  #{order['executedQty'].to_f.round(9)}"
+        res_message += "\nFilled_at:   #{Time.at(order['updateTime']/1000).getlocal('+07:00').strftime(date_time_format)}"
+      end
+
     end
 
     res_message

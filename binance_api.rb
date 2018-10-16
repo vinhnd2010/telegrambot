@@ -12,6 +12,7 @@ require "net/http"
 require "binance"
 
 class BinanceApi
+  FILLED_STT = ["FILLED", "PARTIALLY_FILLED"]
   def initialize access_key, secret_key
     @uri = URI.parse "https://api.binance.com"
     @header = {
@@ -68,19 +69,17 @@ class BinanceApi
         orders = @client.all_orders(symbol: "#{symbol}#{base}",
           startTime: (Time.now.getlocal("+07:00").to_date).to_time.to_i * 1000,
           endTime: Time.now.getlocal("+07:00").to_i * 1000)
-        # binding.pry# if symbol == "BLZ" && base == "BTC"
         unless orders.empty?
-          # unless orders["code"]
-          #   binding.pry
-          #   today_orders += orders.select do |order|
-          #     order["updateTime"].to_i >= Time.now.getlocal("+07:00").to_date.to_time.to_i &&
-          #     order["updateTime"].to_i <= Time.now.getlocal("+07:00").to_i
-          #   end
-          # end
+          if orders.is_a? Array
+            today_orders += orders.select do |order|
+              order["updateTime"].to_i >= Time.now.getlocal("+07:00").to_date.to_time.to_i &&
+              FILLED_STT.include?(order["status"])
+            end
+          end
         end
       end
     end
-    binding.pry
+    today_orders
   end
 
   private
@@ -108,7 +107,7 @@ class BinanceApi
       symbols << row[0]
     end
 
-    symbols
+    symbols.uniq
   end
 
   def update_symbol_to_db symbols
@@ -123,7 +122,7 @@ class BinanceApi
     top_assets = {}
     assets = @client.account_info["balances"]
     assets.each do |asset|
-      asset_name = asset["asset"]
+      asset_name = asset["asset"].upcase
       asset_qty = asset["free"].to_f + asset["locked"].to_f
       if asset_qty > 0
         top_assets[asset_name] = asset_qty
@@ -132,5 +131,3 @@ class BinanceApi
     top_assets
   end
 end
-
-# BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"]).all_orders
