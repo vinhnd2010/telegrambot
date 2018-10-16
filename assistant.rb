@@ -74,6 +74,9 @@ class Assistant
         when "/hb_today_orders"
           res_message = fetch_orders(huobi_pro, 0)
           bot.api.send_message(chat_id: chat_id, text: res_message)
+        when "/bnb_24h_orders"
+          res_message = fetch_orders(huobi_pro, 1)
+          bot.api.send_message(chat_id: chat_id, text: res_message)
         else
           bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
             reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
@@ -83,24 +86,30 @@ class Assistant
   end
 
   private
-  def fetch_orders huobi_pro, dates=nil
+  def fetch_orders api_instance, dates=nil
     res_message = ""
     date_time_format = "%Y-%m-%d %H:%M:%S"
     today = Time.now.getlocal("+07:00").to_date
-    six_months_orders = huobi_pro.orders["data"]
 
-    orders_in_dates = six_months_orders.select do |order|
-      filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_date.to_s
-      filled_at >= (today - dates.to_i).to_s && filled_at <= today.to_s
-    end
-    res_message += "Total: #{orders_in_dates.size}\n--------------------------------"
+    if api_instance.class.to_s == "HuobiPro"
+      six_months_orders = api_instance.orders["data"]
 
-    orders_in_dates.each_with_index do |order, index|
-      res_message += "\n===========================" if index > 0
-      res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
-      res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
-      res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
+      orders_in_dates = six_months_orders.select do |order|
+        filled_at = Time.at(order['finished-at']/1000).getlocal('+07:00').to_date.to_s
+        filled_at >= (today - dates.to_i).to_s && filled_at <= today.to_s
+      end
+      res_message += "Total: #{orders_in_dates.size}\n--------------------------------"
+
+      orders_in_dates.each_with_index do |order, index|
+        res_message += "\n===========================" if index > 0
+        res_message += "\n#{order['symbol'].upcase} | #{order['type'].split('-').first.upcase}"
+        res_message += "\nAmount: #{order['amount'].to_f.round(9)} \nPrice:       #{order['price'].to_f.round(9)}"
+        res_message += "\nFilled_at: #{Time.at(order['finished-at']/1000).getlocal('+07:00').strftime(date_time_format)}"
+      end
+    elsif api_instance.class.to_s == "BinanceApi"
+      # orders = 
     end
+
     res_message
   end
 end

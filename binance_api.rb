@@ -7,6 +7,7 @@ require 'base64'
 require "dotenv/load"
 require "pry"
 require "date"
+require "csv"
 require "net/http"
 require "binance"
 
@@ -39,15 +40,7 @@ class BinanceApi
 
   def balance_in_usdt
     usdt_amount = 0
-    top_assets = {}
-    assets = @client.account_info["balances"]
-    assets.each do |asset|
-      asset_name = asset["asset"]
-      asset_qty = asset["free"].to_f + asset["locked"].to_f
-      if asset_qty > 0
-        top_assets[asset_name] = asset_qty
-      end
-    end
+    top_assets = get_top_assets
 
     top_assets.each do |asset|
       balance = asset[1]
@@ -67,6 +60,29 @@ class BinanceApi
     [top_assets, usdt_amount]
   end
 
+  def all_orders
+    symbols = collect_symbol
+    today_orders = []
+    symbols.each do |symbol|
+      ["BTC", "ETH", "USDT"].each do |base|
+        orders = @client.all_orders(symbol: "#{symbol}#{base}",
+          startTime: (Time.now.getlocal("+07:00").to_date).to_time.to_i * 1000,
+          endTime: Time.now.getlocal("+07:00").to_i * 1000)
+        # binding.pry# if symbol == "BLZ" && base == "BTC"
+        unless orders.empty?
+          # unless orders["code"]
+          #   binding.pry
+          #   today_orders += orders.select do |order|
+          #     order["updateTime"].to_i >= Time.now.getlocal("+07:00").to_date.to_time.to_i &&
+          #     order["updateTime"].to_i <= Time.now.getlocal("+07:00").to_i
+          #   end
+          # end
+        end
+      end
+    end
+    binding.pry
+  end
+
   private
   def util_get path, params
     url = "#{@uri}#{path}?#{Rack::Utils.build_query(params)}"
@@ -80,7 +96,41 @@ class BinanceApi
       {"message" => "error", "request_error" => e.message}
     end
   end
+
+  def collect_symbol
+    asset_symbols = get_top_assets.keys
+    symbols = asset_symbols
+
+    objects = CSV.read("db/assets.csv")
+    update_symbol_to_db asset_symbols
+
+    objects.each do |row|
+      symbols << row[0]
+    end
+
+    symbols
+  end
+
+  def update_symbol_to_db symbols
+    CSV.open("db/assets.csv", "wb") do |csv|
+      symbols.each do |symbol|
+        csv << [symbol]
+      end
+    end
+  end
+
+  def get_top_assets
+    top_assets = {}
+    assets = @client.account_info["balances"]
+    assets.each do |asset|
+      asset_name = asset["asset"]
+      asset_qty = asset["free"].to_f + asset["locked"].to_f
+      if asset_qty > 0
+        top_assets[asset_name] = asset_qty
+      end
+    end
+    top_assets
+  end
 end
 
-# Binance.new.day_changes("CMTBTC")
-# BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"]).balances
+# BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"]).all_orders
