@@ -120,12 +120,13 @@ class BinanceApi
 
   def get_top_assets
     top_assets = {}
-    assets = @client.account_info["balances"]
-    assets.each do |asset|
-      asset_name = asset["asset"].upcase
-      asset_qty = asset["free"].to_f + asset["locked"].to_f
-      if asset_qty > 0
-        top_assets[asset_name] = asset_qty
+    if assets = @client.account_info["balances"]
+      assets.each do |asset|
+        asset_name = asset["asset"].upcase
+        asset_qty = asset["free"].to_f + asset["locked"].to_f
+        if asset_qty > 0
+          top_assets[asset_name] = asset_qty
+        end
       end
     end
     top_assets
