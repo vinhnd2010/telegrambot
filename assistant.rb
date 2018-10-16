@@ -30,12 +30,12 @@ class Assistant
         hb_access_key = ENV["HB_ACCESS_KEY_#{chat_id}"]
         hb_secret_key = ENV["HB_SECRET_KEY_#{chat_id}"]
         # hb_account_id = ENV["HB_ACCOUNT_ID_#{chat_id}"]
-        if hb_access_key && hb_secret_key
+        if message.text.include?("/hb") && hb_access_key && hb_secret_key
           hb_account_id = HuobiPro.new(hb_access_key, hb_secret_key).accounts["data"][0]["id"]
           huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
         end
 
-        if ENV["BNB_API_KEY"] && ENV["BNB_SECRET_KEY"]
+        if message.text.include?("/bnb") && ENV["BNB_API_KEY"] && ENV["BNB_SECRET_KEY"]
           binance_api = BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"])
         end
 
