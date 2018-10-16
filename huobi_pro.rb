@@ -9,6 +9,8 @@ require "pry"
 require "date"
 
 class HuobiPro
+  TOPS = ["btc", "eth", "neo", "bch", "ltc", "etc"]
+
   def initialize(access_key, secret_key, account_id="", signature_version="2")
       @access_key = access_key
       @secret_key = secret_key
@@ -168,8 +170,12 @@ class HuobiPro
     top_tokens = {}
     balances = self.balances
     tokens = balances["data"]["list"]
-    tokens.each do |token| 
-      if (balance = token['balance'].to_f) > 0
+    tokens.each do |token|
+      if TOPS.include?(token['currency'].downcase)
+        if (balance = token['balance'].to_f) > 0
+          top_tokens[token['currency']] = top_tokens[token['currency']].to_f + token['balance'].to_f
+        end
+      elsif (balance = token['balance'].to_f) > 1
         top_tokens[token['currency']] = top_tokens[token['currency']].to_f + token['balance'].to_f
       end
     end
