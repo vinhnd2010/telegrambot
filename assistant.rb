@@ -23,63 +23,64 @@ class Assistant
     Telegram::Bot::Client.run(tele_secret_token) do |bot|
       bot.listen do |message|
         chat_id = message.chat.id
-        message_text = message.text
-        mess = message_text.split()
-        first_name = message.chat.first_name
+        if message_text = message.text
+          mess = message_text.split()
+          first_name = message.chat.first_name
 
-        hb_access_key = ENV["HB_ACCESS_KEY_#{chat_id}"]
-        hb_secret_key = ENV["HB_SECRET_KEY_#{chat_id}"]
-        # hb_account_id = ENV["HB_ACCOUNT_ID_#{chat_id}"]
-        if message.text.include?("/hb") && hb_access_key && hb_secret_key
-          hb_account_id = HuobiPro.new(hb_access_key, hb_secret_key).accounts["data"][0]["id"]
-          huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
-        end
-
-        if message.text.include?("/bnb") && ENV["BNB_API_KEY"] && ENV["BNB_SECRET_KEY"]
-          binance_api = BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"])
-        end
-
-        case mess[0]
-        when "/start"
-          res_message = "Hello #{first_name}! \n Please choose the following actions:"
-          bot.api.send_message(chat_id: chat_id, text: res_message,
-            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
-        when hb_balances
-          res_message = ""
-          if huobi_pro
-            top_tokens, total_usdt = huobi_pro.balance_in_usdt
-            top_tokens.each do |token|
-              res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
-            end
-            res_message += "\n==========================\n Your HB balances: #{total_usdt.round 0} USDT"
-          else
-            res_message = "Need permission. Please contact administrator. Thank you!"
+          hb_access_key = ENV["HB_ACCESS_KEY_#{chat_id}"]
+          hb_secret_key = ENV["HB_SECRET_KEY_#{chat_id}"]
+          # hb_account_id = ENV["HB_ACCOUNT_ID_#{chat_id}"]
+          if message.text.include?("/hb") && hb_access_key && hb_secret_key
+            hb_account_id = HuobiPro.new(hb_access_key, hb_secret_key).accounts["data"][0]["id"]
+            huobi_pro = HuobiPro.new(hb_access_key, hb_secret_key, hb_account_id)
           end
-          bot.api.send_message(chat_id: chat_id, text: res_message)
-        when bnb_balances
-           res_message = ""
-          if binance_api
-            top_tokens, total_usdt = binance_api.balance_in_usdt
-            top_tokens.each do |token|
-              res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
-            end
-            res_message += "\n==============================\n Your Binance balances: #{total_usdt.round 0} USDT"
-          else
-            res_message = "Need permission. Please contact administrator. Thank you!"
+
+          if message.text.include?("/bnb") && ENV["BNB_API_KEY"] && ENV["BNB_SECRET_KEY"]
+            binance_api = BinanceApi.new(ENV["BNB_API_KEY"], ENV["BNB_SECRET_KEY"])
           end
-          bot.api.send_message(chat_id: chat_id, text: res_message)
-        when "/hb_24h_orders"
-          res_message = fetch_orders(huobi_pro, 1)
-          bot.api.send_message(chat_id: chat_id, text: res_message)
-        when "/hb_today_orders"
-          res_message = fetch_orders(huobi_pro, 0)
-          bot.api.send_message(chat_id: chat_id, text: res_message)
-        when "/bnb_today_orders"
-          res_message = fetch_orders(binance_api, 1)
-          bot.api.send_message(chat_id: chat_id, text: res_message)
-        else
-          bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
-            reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
+
+          case mess[0]
+          when "/start"
+            res_message = "Hello #{first_name}! \n Please choose the following actions:"
+            bot.api.send_message(chat_id: chat_id, text: res_message,
+              reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
+          when hb_balances
+            res_message = ""
+            if huobi_pro
+              top_tokens, total_usdt = huobi_pro.balance_in_usdt
+              top_tokens.each do |token|
+                res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
+              end
+              res_message += "\n==========================\n Your HB balances: #{total_usdt.round 0} USDT"
+            else
+              res_message = "Need permission. Please contact administrator. Thank you!"
+            end
+            bot.api.send_message(chat_id: chat_id, text: res_message)
+          when bnb_balances
+             res_message = ""
+            if binance_api
+              top_tokens, total_usdt = binance_api.balance_in_usdt
+              top_tokens.each do |token|
+                res_message += "\n#{token[0].upcase}:    #{token[1].round(4)}"
+              end
+              res_message += "\n==============================\n Your Binance balances: #{total_usdt.round 0} USDT"
+            else
+              res_message = "Need permission. Please contact administrator. Thank you!"
+            end
+            bot.api.send_message(chat_id: chat_id, text: res_message)
+          when "/hb_24h_orders"
+            res_message = fetch_orders(huobi_pro, 1)
+            bot.api.send_message(chat_id: chat_id, text: res_message)
+          when "/hb_today_orders"
+            res_message = fetch_orders(huobi_pro, 0)
+            bot.api.send_message(chat_id: chat_id, text: res_message)
+          when "/bnb_today_orders"
+            res_message = fetch_orders(binance_api, 1)
+            bot.api.send_message(chat_id: chat_id, text: res_message)
+          else
+            bot.api.send_message(chat_id: chat_id, text: "Please choose the following actions:",
+              reply_markup: Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: keyboard_arr, one_time_keyboard: true))
+          end
         end
       end
     end

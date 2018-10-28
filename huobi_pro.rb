@@ -167,6 +167,7 @@ class HuobiPro
 
   def balance_in_usdt
     usdt_amount = 0
+    btc_price = trade_detail("btcusdt")["tick"]["data"].first["price"].to_f
     top_tokens = {}
     balances = self.balances
     tokens = balances["data"]["list"]
@@ -183,15 +184,8 @@ class HuobiPro
       balance = top_tokens[token_name]
       if token_name == "usdt"
         usdt_amount += balance
-      else
-        if trade_detail("#{token_name}usdt")["status"] == "ok"
-          usdt_amount += balance * trade_detail("#{token_name}usdt")["tick"]["data"].first["price"].to_f
-        else
-          if trade_detail("#{token_name}btc")["tick"]
-            usdt_amount += balance * trade_detail("#{token_name}btc")["tick"]["data"].first["price"].to_f *
-              trade_detail("btcusdt")["tick"]["data"].first["price"].to_f
-          end
-        end
+      elsif detail = trade_detail("#{token_name}btc")["tick"]
+        usdt_amount += balance * detail["data"].first["price"].to_f * btc_price
       end
     end
     [top_tokens, usdt_amount]
